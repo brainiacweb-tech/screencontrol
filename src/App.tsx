@@ -75,7 +75,11 @@ function isOnline(lastSeen: string | null): boolean {
 }
 
 function friendlyError(error: unknown): string {
-  return error instanceof Error ? error.message : 'Something went wrong. Please try again.'
+  if (error instanceof Error) return error.message
+  if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
+    return error.message
+  }
+  return 'An unexpected error occurred. Please try again.'
 }
 
 function readDisplayCache(screenId: string): DisplayCache | null {
@@ -224,6 +228,7 @@ function ControlApp({ client, session }: { client: SupabaseClient; session: Sess
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [activity, setActivity] = useState<ActivityItem[]>([])
   const [programme, setProgramme] = useState<ProgrammeItem[]>([])
+  const [screensLoadError, setScreensLoadError] = useState<string | null>(null)
   const [page, setPage] = useState<'home' | 'screens' | 'media' | 'programme'>('home')
   const [notice, setNotice] = useState<Notice | null>(null)
   const [loading, setLoading] = useState(true)
@@ -258,30 +263,47 @@ function ControlApp({ client, session }: { client: SupabaseClient; session: Sess
 
   const reload = useCallback(async () => {
     setLoading(true)
-    const [profileResult, screenResult, assetResult, assignmentResult, activityResult, programmeResult] = await Promise.all([
-      client.from('user_profiles').select('role,full_name').eq('id', session.user.id).single(),
-      client.from('screens').select('id,label,auth_user_id,last_seen_at').order('label'),
-      client.from('media_assets').select('id,file_name,storage_path,mime_type,size_bytes,created_at').order('created_at', { ascending: false }),
-      client.from('screen_assignments').select('screen_id,content,updated_at'),
-      client.from('activity_log').select('id,action,created_at,metadata').order('created_at', { ascending: false }).limit(24),
-      client.from('programme_items').select('id,activity,presenter,starts_at,ends_at').order('starts_at'),
-    ])
-    const failure = [profileResult, screenResult, assetResult, assignmentResult, activityResult, programmeResult].find((result) => result.error)
-    if (failure?.error) notify('error', friendlyError(failure.error))
-    if (profileResult.data) setProfile(profileResult.data as Profile)
-    if (screenResult.data) {
-      const loadedScreens = screenResult.data as Screen[]
-      setScreens(loadedScreens)
-      if (!initializedTargets.current && loadedScreens.length) {
-        setSelectedScreens(loadedScreens.map((screen) => screen.id))
-        initializedTargets.current = true
+    try {
+      const [profileResult, screenResult, assetResult, assignmentResult, activityResult, programmeResult] = await Promise.all([
+        client.from('user_profiles').select('role,full_name').eq('id', session.user.id).single(),
+        client.from('screens').select('id,label,auth_user_id,last_seen_at').order('label'),
+        client.from('media_assets').select('id,file_name,storage_path,mime_type,size_bytes,created_at').order('created_at', { ascending: false }),
+        client.from('screen_assignments').select('screen_id,content,updated_at'),
+        client.from('activity_log').select('id,action,created_at,metadata').order('created_at', { ascending: false }).limit(24),
+        client.from('programme_items').select('id,activity,presenter,starts_at,ends_at').order('starts_at'),
+      ])
+      const failures = [
+        { resource: 'profile', error: profileResult.error },
+        { resource: 'screens', error: screenResult.error },
+        { resource: 'media library', error: assetResult.error },
+        { resource: 'screen assignments', error: assignmentResult.error },
+        { resource: 'activity', error: activityResult.error },
+        { resource: 'programme', error: programmeResult.error },
+      ].filter(({ error }) => error)
+      if (failures.length) {
+        notify('error', failures.map(({ resource, error }) => `Couldn't load ${resource}: ${friendlyError(error)}`).join(' · '))
       }
+      setScreensLoadError(screenResult.error ? friendlyError(screenResult.error) : null)
+      if (profileResult.data) setProfile(profileResult.data as Profile)
+      if (screenResult.data) {
+        const loadedScreens = screenResult.data as Screen[]
+        setScreens(loadedScreens)
+        if (!initializedTargets.current && loadedScreens.length) {
+          setSelectedScreens(loadedScreens.map((screen) => screen.id))
+          initializedTargets.current = true
+        }
+      }
+      if (assetResult.data) setAssets(assetResult.data as MediaAsset[])
+      if (assignmentResult.data) setAssignments(assignmentResult.data as Assignment[])
+      if (activityResult.data) setActivity(activityResult.data as ActivityItem[])
+      if (programmeResult.data) setProgramme(programmeResult.data as ProgrammeItem[])
+    } catch (error) {
+      const message = friendlyError(error)
+      setScreensLoadError(message)
+      notify('error', `Couldn't load dashboard data: ${message}`)
+    } finally {
+      setLoading(false)
     }
-    if (assetResult.data) setAssets(assetResult.data as MediaAsset[])
-    if (assignmentResult.data) setAssignments(assignmentResult.data as Assignment[])
-    if (activityResult.data) setActivity(activityResult.data as ActivityItem[])
-    if (programmeResult.data) setProgramme(programmeResult.data as ProgrammeItem[])
-    setLoading(false)
   }, [client, notify, session.user.id])
 
   useEffect(() => {
@@ -514,7 +536,7 @@ function ControlApp({ client, session }: { client: SupabaseClient; session: Sess
                 {(screens.length ? screens : []).map((screen, index) => (
                   <ScreenCard key={screen.id} screen={screen} assignment={currentAssignment(screen.id)} index={index} canControl={canControl} onDrop={dropOnScreen} onDragOver={dragOver} onOpen={() => { setActiveScreen(screen); setSelectedScreens([screen.id]); setPage('media') }} onPair={() => void createPairingCode(screen)} onStop={() => void stopScreen(screen.id)} onPause={(paused) => void togglePlayback(screen.id, paused, currentAssignment(screen.id)?.content.type)} busy={busy} />
                 ))}
-                {!screens.length && !loading && <EmptyPanel text="No screens are set up yet. Refresh once your database migration has been applied." />}
+                {!screens.length && !loading && <EmptyPanel text={screensLoadError ? `Couldn't load screens: ${screensLoadError}` : 'No screens are set up yet. Refresh once your database migration has been applied.'} />}
               </div>
               <div className="lower-grid">
                 <section className="panel activity-panel"><div className="panel-heading"><div><h2>Recent activity</h2><p>Changes made by your team.</p></div><button className="icon-button" aria-label="More activity" onClick={() => setShowAllActivity((value) => !value)}><MoreHorizontal size={19} /></button></div><ActivityList items={showAllActivity ? activity : activity.slice(0, 4)} /></section>
@@ -525,7 +547,7 @@ function ControlApp({ client, session }: { client: SupabaseClient; session: Sess
 
           {page === 'screens' && <section className="subpage">
             <div className="welcome-row"><div><span className="eyebrow">DISPLAY CONTROL</span><h1>Your screens</h1><p>Pair each TV once, then show content from anywhere.</p></div><div className="screen-summary"><span className="status-dot" />{onlineCount} online <span className="summary-divider" /> {screens.length} registered</div></div>
-            <div className="screen-grid screen-grid-large">{screens.map((screen, index) => <ScreenCard key={screen.id} screen={screen} assignment={currentAssignment(screen.id)} index={index} canControl={canControl} onDrop={dropOnScreen} onDragOver={dragOver} onOpen={() => { setActiveScreen(screen); setSelectedScreens([screen.id]); setPage('media') }} onPair={() => void createPairingCode(screen)} onStop={() => void stopScreen(screen.id)} onPause={(paused) => void togglePlayback(screen.id, paused, currentAssignment(screen.id)?.content.type)} busy={busy} />)}</div>
+            <div className="screen-grid screen-grid-large">{screens.map((screen, index) => <ScreenCard key={screen.id} screen={screen} assignment={currentAssignment(screen.id)} index={index} canControl={canControl} onDrop={dropOnScreen} onDragOver={dragOver} onOpen={() => { setActiveScreen(screen); setSelectedScreens([screen.id]); setPage('media') }} onPair={() => void createPairingCode(screen)} onStop={() => void stopScreen(screen.id)} onPause={(paused) => void togglePlayback(screen.id, paused, currentAssignment(screen.id)?.content.type)} busy={busy} />)}{!screens.length && !loading && <EmptyPanel text={screensLoadError ? `Couldn't load screens: ${screensLoadError}` : 'No screens are set up yet. Refresh once your database migration has been applied.'} />}</div>
             <div className="note-banner"><ShieldCheck size={18} /><span><strong>Pairing is private.</strong> Each TV gets its own one-time code. Codes expire in 10 minutes and can only be used once.</span></div>
           </section>}
 
