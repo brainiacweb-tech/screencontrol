@@ -133,6 +133,7 @@ function App() {
 }
 
 function SetupScreen({ onRetry }: { onRetry: () => void }) {
+  const [guideOpen, setGuideOpen] = useState(false)
   return (
     <main className="setup-shell">
       <div className="setup-card">
@@ -147,13 +148,16 @@ function SetupScreen({ onRetry }: { onRetry: () => void }) {
           <span>Copy <code>.env.example</code> to <code>.env.local</code>, fill in the values, then restart the app.</span>
         </div>
         <button className="button button-primary" onClick={onRetry}><RefreshCw size={16} /> Check setup</button>
+        <button className="auth-switch" onClick={() => setGuideOpen(true)}>Read the system guide</button>
         <small>Your private service-role key is never needed in this app.</small>
       </div>
+      <SystemGuide open={guideOpen} onClose={() => setGuideOpen(false)} />
     </main>
   )
 }
 
 function SignIn({ client }: { client: SupabaseClient }) {
+  const [guideOpen, setGuideOpen] = useState(false)
   const [email, setEmail] = useState('kfrancis0586@gmail.com')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
@@ -204,9 +208,11 @@ function SignIn({ client }: { client: SupabaseClient }) {
         >
           {isSignUp ? 'Already have an account? Sign in' : 'New here? Create an account'}
         </button>
+        <button className="auth-switch" type="button" onClick={() => setGuideOpen(true)}>Read the system guide</button>
         <div className="auth-note"><ShieldCheck size={16} /> New accounts start as viewers; administrators manage access levels.</div>
       </section>
       <span className="auth-footer">Simple, reliable control for every screen.</span>
+      <SystemGuide open={guideOpen} onClose={() => setGuideOpen(false)} />
     </main>
   )
 }
@@ -240,6 +246,7 @@ function ControlApp({ client, session }: { client: SupabaseClient; session: Sess
   const [programmeStart, setProgrammeStart] = useState('')
   const [programmeEnd, setProgrammeEnd] = useState('')
   const [showAllActivity, setShowAllActivity] = useState(false)
+  const [guideOpen, setGuideOpen] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
   const initializedTargets = useRef(false)
   const canControl = profile?.role === 'administrator' || profile?.role === 'operator'
@@ -469,7 +476,7 @@ function ControlApp({ client, session }: { client: SupabaseClient; session: Sess
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <div className="help-card"><div className="help-icon"><CircleHelp size={17} /></div><strong>Need a hand?</strong><span>Get a screen ready in a few simple steps.</span><button onClick={() => notify('info', 'Open /display/SCREEN_ID on the TV, then pair it with the one-time code from My screens.')}>Quick setup guide <ArrowRight size={13} /></button></div>
+          <div className="help-card"><div className="help-icon"><CircleHelp size={17} /></div><strong>Need a hand?</strong><span>Get a screen ready in a few simple steps.</span><button onClick={() => setGuideOpen(true)}>System guide <ArrowRight size={13} /></button></div>
           <div className="user-menu"><div className="user-avatar">{(profile?.full_name || session.user.email || 'S').slice(0, 1).toUpperCase()}</div><span><strong>{profile?.full_name || session.user.email?.split('@')[0]}</strong><small>{profile?.role || 'Loading role…'}</small></span><button aria-label="Sign out" onClick={signOut}><LogOut size={17} /></button></div>
         </div>
       </aside>
@@ -477,7 +484,7 @@ function ControlApp({ client, session }: { client: SupabaseClient; session: Sess
       <main className="main-panel">
         <header className="topbar">
           <div className="breadcrumb"><span>Workspace</span><span className="crumb-slash">/</span><strong>{nav.find((item) => item.key === page)?.title}</strong></div>
-          <div className="topbar-actions"><div className={`live-pill ${liveUpdates ? 'is-live' : ''}`}><span />{liveUpdates ? 'Live updates' : 'Connecting…'}</div><button className="icon-button" aria-label="Refresh" onClick={() => void reload()}><RefreshCw size={17} /></button><div className="topbar-avatar">{(profile?.full_name || session.user.email || 'S').slice(0, 1).toUpperCase()}</div></div>
+          <div className="topbar-actions"><div className={`live-pill ${liveUpdates ? 'is-live' : ''}`}><span />{liveUpdates ? 'Live updates' : 'Connecting…'}</div><button className="icon-button" aria-label="Open system guide" title="System guide" onClick={() => setGuideOpen(true)}><CircleHelp size={17} /></button><button className="icon-button" aria-label="Refresh" onClick={() => void reload()}><RefreshCw size={17} /></button><div className="topbar-avatar">{(profile?.full_name || session.user.email || 'S').slice(0, 1).toUpperCase()}</div></div>
         </header>
 
         <div className="page-content">
@@ -545,6 +552,7 @@ function ControlApp({ client, session }: { client: SupabaseClient; session: Sess
       {modal === 'announcement' && <Modal title="Show an announcement" subtitle="Send a clear message to your screens." onClose={() => setModal(null)}><form className="form-stack" onSubmit={(event) => { event.preventDefault(); void publish(selectedScreens, { type: 'announcement', title: announcementTitle, message: announcementMessage }) }}><label>Heading<input required maxLength={80} value={announcementTitle} onChange={(event) => setAnnouncementTitle(event.target.value)} placeholder="A quick announcement" /></label><label>Message<textarea required maxLength={500} rows={4} value={announcementMessage} onChange={(event) => setAnnouncementMessage(event.target.value)} placeholder="Type your message…" /></label><ScreenTargetChooser label="SHOW ON" screens={screens} selected={selectedScreens} onChange={setSelectedScreens} /><div className="modal-actions"><button type="button" className="button button-outline" onClick={() => setModal(null)}>Cancel</button><button className="button button-primary" disabled={busy || !selectedScreens.length}><Bell size={15} /> Display announcement</button></div></form></Modal>}
       {modal === 'programme' && <Modal title="Add programme activity" subtitle="Keep your team up to date with the schedule." onClose={() => setModal(null)}><form className="form-stack" onSubmit={(event) => void saveProgramme(event)}><label>Activity<input required maxLength={120} value={programmeActivity} onChange={(event) => setProgrammeActivity(event.target.value)} placeholder="Welcome and opening" /></label><label>Presenter <span className="optional">(optional)</span><input value={programmePresenter} onChange={(event) => setProgrammePresenter(event.target.value)} placeholder="Name" /></label><div className="form-columns"><label>Starts<input required type="datetime-local" value={programmeStart} onChange={(event) => setProgrammeStart(event.target.value)} /></label><label>Ends<input required type="datetime-local" value={programmeEnd} onChange={(event) => setProgrammeEnd(event.target.value)} /></label></div><div className="modal-actions"><button type="button" className="button button-outline" onClick={() => setModal(null)}>Cancel</button><button className="button button-primary"><Plus size={15} /> Add to programme</button></div></form></Modal>}
       {modal === 'pair' && activeScreen && <Modal title={`Pair ${activeScreen.label}`} subtitle="Open this address on the TV and enter its one-time code." onClose={() => setModal(null)}><div className="pairing-instructions"><div className="pair-step"><span>1</span><div><strong>Open the TV's pairing page</strong><code>{`${window.location.origin}/display/${activeScreen.id}`}</code></div></div><div className="pair-step"><span>2</span><div><strong>Enter this code on the TV</strong><div className="pair-code">{pairingCode || <span className="spinner small" />}</div></div></div><small>The code works once and expires in 10 minutes. Keep this window open while pairing.</small></div><div className="modal-actions"><button className="button button-outline" onClick={() => setModal(null)}>Done</button><button className="button button-primary" onClick={() => void createPairingCode(activeScreen)}><RefreshCw size={15} /> New code</button></div></Modal>}
+      <SystemGuide open={guideOpen} onClose={() => setGuideOpen(false)} />
       {notice && <div role="status" className={`toast toast-${notice.tone}`}><span className="toast-icon">{notice.tone === 'success' ? <CheckCircle2 size={17} /> : notice.tone === 'error' ? <AlertCircle size={17} /> : <CircleHelp size={17} />}</span>{notice.text}<button aria-label="Dismiss" onClick={() => setNotice(null)}><X size={15} /></button></div>}
     </div>
   )
@@ -629,6 +637,112 @@ function ScreenTargetChooser({ label, screens, selected, onChange }: {
 
 function Modal({ title, subtitle, onClose, children }: { title: string; subtitle: string; onClose: () => void; children: ReactNode }) {
   return <Dialog open onOpenChange={(open) => { if (!open) onClose() }}><DialogContent className="modal-card"><DialogHeader className="modal-heading"><div><DialogTitle>{title}</DialogTitle><DialogDescription>{subtitle}</DialogDescription></div><DialogClose className="icon-button" aria-label="Close dialog"><X size={19} /></DialogClose></DialogHeader>{children}</DialogContent></Dialog>
+}
+
+function SystemGuide({ open, onClose }: { open: boolean; onClose: () => void }) {
+  return (
+    <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose() }}>
+      <DialogContent className="modal-card guide-modal">
+        <DialogHeader className="modal-heading">
+          <div>
+            <DialogTitle>ScreenControl system guide</DialogTitle>
+            <DialogDescription>Setup, connect your TVs, and run your event step by step.</DialogDescription>
+          </div>
+          <DialogClose className="icon-button" aria-label="Close system guide"><X size={19} /></DialogClose>
+        </DialogHeader>
+        <div className="guide-content">
+          <section>
+            <h3>Before you begin</h3>
+            <p>ScreenControl has an operator dashboard, a display page for each TV, and a Supabase backend. The dashboard does not stream content itself: each TV needs internet access and its own display page open.</p>
+            <div className="guide-callout"><strong>You will need</strong><span>A Supabase project, the app’s project URL and publishable/anon key, an administrator or operator account, and TVs with a browser. Supported uploads are JPG, PNG, WebP, or MP4 files up to 100 MB each.</span></div>
+          </section>
+
+          <section>
+            <h3>1. Set up Supabase and the app</h3>
+            <ol>
+              <li>Create a Supabase project. In <strong>SQL Editor</strong>, run the complete <code>supabase/migrations/202611250001_screencontrol.sql</code> migration. It creates the tables and policies, private media bucket, pairing functions, and four initial TV records.</li>
+              <li>In <strong>Authentication → Sign In / Providers</strong>, enable email/password and anonymous sign-ins. Enable email sign-up if users should register themselves; new accounts start as viewers.</li>
+              <li>In <strong>Authentication → URL Configuration</strong>, set the app’s Site URL and allow the local development and deployed HTTPS URLs that users will visit.</li>
+              <li>Copy <code>.env.example</code> to <code>.env.local</code>. Set <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> to the project URL and browser-safe publishable/anon key. Restart the dev server after changing them.</li>
+              <li>Run <code>npm install</code>, then <code>npm run dev</code>. Open the Vite URL shown in the terminal.</li>
+              <li>Choose <strong>New here? Create an account</strong>, register the first admin, and confirm the email if requested. In Supabase <strong>Authentication → Users</strong>, copy that account’s UUID and promote it in SQL Editor:</li>
+            </ol>
+            <pre><code>{"update public.user_profiles\nset role = 'administrator'\nwhere id = 'AUTH_USER_UUID';"}</code></pre>
+            <p>Replace <code>AUTH_USER_UUID</code> with the real account UUID. To grant operator access, set the role to <code>operator</code>. Manage roles in Supabase; do not put a service-role key or database password in browser code or a <code>VITE_</code> variable.</p>
+          </section>
+
+          <section>
+            <h3>2. Sign in and understand the dashboard</h3>
+            <ul>
+              <li><strong>Overview</strong> summarizes screen heartbeats, assignments, media, activity, and upcoming programme entries.</li>
+              <li><strong>My screens</strong> is where you pair TVs, check online status, change content, pause/resume, or stop a display.</li>
+              <li><strong>Media library</strong> is where operators upload files and choose what to publish.</li>
+              <li><strong>Programme</strong> is where operators add event activities and show the schedule on TVs.</li>
+            </ul>
+            <p>Administrators and operators can control screens. Viewers can monitor but cannot pair TVs, upload media, or publish content. “Online” means the TV has sent a recent heartbeat; it does not confirm that a particular video rendered successfully.</p>
+          </section>
+
+          <section>
+            <h3>3. Pair a TV</h3>
+            <ol>
+              <li>On the operator dashboard, open <strong>My screens</strong> and choose the pairing menu on the TV’s card.</li>
+              <li>Open the displayed <code>/display/&lt;screen-uuid&gt;</code> address in that TV’s built-in browser.</li>
+              <li>Keep the pairing dialog open. Wait for its six-digit code, then enter the code on the TV and select <strong>Connect this TV</strong>.</li>
+              <li>Wait for the TV to show Connected and for the dashboard card to report Online. Repeat with a separate URL and code for every TV.</li>
+            </ol>
+            <div className="guide-callout"><strong>Pairing code reminder</strong><span>Each code works once and expires after 10 minutes. If it expires or is rejected, generate a new one. Leave the TV display page open during the event so it can receive updates and send heartbeats.</span></div>
+          </section>
+
+          <section>
+            <h3>4. Upload and play media</h3>
+            <ol>
+              <li>Open <strong>Media library</strong> and choose <strong>Add picture or video</strong>.</li>
+              <li>Select JPG, PNG, WebP, or MP4 files up to 100 MB each. Wait for them to appear in the library.</li>
+              <li>Click a media card to select it. Under <strong>PLAY ON</strong>, choose <strong>All screens</strong> or select individual TVs.</li>
+              <li>For images, set the display duration from 3 to 600 seconds (12 seconds by default). Select multiple items to create a playlist; choose <strong>Repeat playlist</strong> if it should loop.</li>
+              <li>Choose <strong>Play on ... screens</strong>. You can also drag a media card directly onto a screen card to send one item to that TV.</li>
+            </ol>
+            <p>To change an existing display, use <strong>Change content</strong> on its screen card. Use the pause/resume control to pause supported media or countdowns, and <strong>Stop display</strong> to return a TV to standby. Stopping a display does not delete its media.</p>
+            <p>Uploads stay in private storage and are delivered with temporary signed URLs. TV firmware determines which MP4 codecs can play. Muted autoplay is attempted; if blocked, interact with the TV and select <strong>Tap to play video</strong>.</p>
+          </section>
+
+          <section>
+            <h3>5. Show an announcement or countdown</h3>
+            <ul>
+              <li><strong>Announcement:</strong> from Overview, select <strong>Show an announcement</strong>, enter a heading and message, choose target screens, then select <strong>Display announcement</strong>. Announcements replace the current assignment on those screens.</li>
+              <li><strong>Countdown:</strong> from Overview, select <strong>Start a timer</strong>, enter a title and a duration between 1 minute and 4 hours, choose target screens, and select <strong>Start countdown</strong>. Pause or resume it from the screen card; stop it to return to standby.</li>
+            </ul>
+            <p>Countdowns use server timestamps to stay synchronized. When one reaches zero, publish the next content yourself; the timer does not automatically advance the event.</p>
+          </section>
+
+          <section>
+            <h3>6. Build and show the programme</h3>
+            <ol>
+              <li>Open <strong>Programme</strong> and choose <strong>Add activity</strong>.</li>
+              <li>Enter the activity, optional presenter, start time, and end time. The end time must be after the start.</li>
+              <li>Select <strong>Add to programme</strong> and repeat for each activity.</li>
+              <li>Choose the target TVs under <strong>SHOW ON</strong>, then select <strong>Show programme</strong>.</li>
+            </ol>
+            <p>The TV programme view shows the activity happening now and upcoming entries. Programme items are shared across the workspace.</p>
+          </section>
+
+          <section>
+            <h3>7. Check connections and fix common issues</h3>
+            <ul>
+              <li><strong>No screens listed:</strong> verify the migration ran in the same Supabase project configured in the app, then refresh.</li>
+              <li><strong>TV stays offline:</strong> check internet access, anonymous sign-ins, the display URL, and whether the TV page remains open. A paired TV is online only after a recent heartbeat.</li>
+              <li><strong>Pairing fails:</strong> generate a fresh code and enter it before the 10-minute expiry.</li>
+              <li><strong>Upload fails:</strong> check that the file is a supported type and within the 100 MB limit, and that the migration created the private bucket.</li>
+              <li><strong>Video will not start:</strong> test the codec on the target TV and try its on-screen play prompt. MP4 files are not guaranteed to use TV-supported codecs.</li>
+              <li><strong>Live updates stop:</strong> check the Live updates indicator and network, then refresh the dashboard or reload the TV page after reconnecting.</li>
+            </ul>
+          </section>
+
+          <a className="guide-full-link" href="https://github.com/brainiacweb-tech/screencontrol#screencontrol" target="_blank" rel="noreferrer">Open the full system guide on GitHub <ArrowRight size={14} /></a>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
 }
 
 function DisplayApp({ client, screenId }: { client: SupabaseClient; screenId: string }) {

@@ -306,6 +306,23 @@ h1, h2, h3 { font-family: 'Raleway', sans-serif; }
 .pair-step code { display: block; overflow-wrap: anywhere; padding: 9px; border-radius: 6px; color: #50617d; background: #f4f6fa; font-family: ui-monospace, monospace; font-size: 9px; }
 .pair-code { min-height: 54px; display: flex; align-items: center; color: #172843; font-family: 'Raleway', sans-serif; font-size: 31px; font-weight: 800; letter-spacing: 7px; }
 .pairing-instructions > small { padding: 10px; border-radius: 7px; color: #8c97a8; background: #f8f9fb; font-size: 9px; line-height: 1.5; }
+.guide-modal { width: min(calc(100vw - 32px), 760px); max-height: min(90vh, 820px); padding: 22px 27px 26px; }
+.guide-modal .modal-heading { position: sticky; top: -22px; z-index: 1; margin: -22px -27px 18px; padding: 22px 27px 14px; border-bottom: 1px solid #edf0f5; background: #fff; }
+.guide-content { display: grid; gap: 19px; color: #59667b; font-size: 11px; line-height: 1.65; }
+.guide-content section { padding-bottom: 17px; border-bottom: 1px solid #edf0f5; }
+.guide-content section:last-of-type { padding-bottom: 0; border-bottom: 0; }
+.guide-content h3 { margin: 0 0 8px; color: #263650; font-size: 13px; }
+.guide-content p { margin: 8px 0 0; }
+.guide-content ol, .guide-content ul { margin: 8px 0 0; padding-left: 21px; display: grid; gap: 7px; }
+.guide-content li { padding-left: 2px; }
+.guide-content strong { color: #40516d; }
+.guide-content code { padding: 2px 4px; border-radius: 4px; color: #485c7b; background: #f1f4f8; font-family: ui-monospace, monospace; font-size: .9em; overflow-wrap: anywhere; }
+.guide-content pre { margin: 11px 0; padding: 12px; overflow-x: auto; border: 1px solid #e8edf4; border-radius: 8px; background: #f7f9fc; line-height: 1.55; }
+.guide-content pre code { padding: 0; background: transparent; font-size: 10px; white-space: pre; }
+.guide-callout { margin-top: 12px; padding: 11px 13px; border-left: 3px solid #f17b57; border-radius: 0 7px 7px 0; display: grid; gap: 3px; background: #fff6f1; }
+.guide-callout strong { color: #a64f35; }
+.guide-full-link { width: fit-content; display: inline-flex; align-items: center; gap: 7px; color: #c65e41; font-size: 11px; font-weight: 700; text-decoration: none; }
+.guide-full-link:hover { text-decoration: underline; }
 .toast { max-width: min(420px, calc(100vw - 28px)); min-height: 47px; padding: 10px 12px; position: fixed; z-index: 30; right: 22px; bottom: 21px; border: 1px solid #e7ebf1; border-radius: 9px; display: flex; align-items: center; gap: 9px; color: #4a5870; background: #fff; box-shadow: 0 7px 28px #27364f1c; font-size: 10px; animation: modal-in .18s ease-out; }
 .toast-success .toast-icon { color: #31a77d; }
 .toast-error .toast-icon { color: #d66449; }
@@ -413,6 +430,9 @@ h1, h2, h3 { font-family: 'Raleway', sans-serif; }
   .programme-display-bar { align-items: stretch; flex-direction: column; }
 }
 @media (max-width: 520px) {
+  .guide-modal { padding: 18px 17px 20px; }
+  .guide-modal .modal-heading { top: -18px; margin: -18px -17px 16px; padding: 18px 17px 12px; }
+  .guide-content { gap: 16px; font-size: 10px; }
   .stats-grid { gap: 7px; }
   .stat-card { min-height: 98px; padding: 11px 8px; grid-template-columns: 27px 1fr; column-gap: 6px; }
   .stat-icon { width: 26px; height: 26px; }
