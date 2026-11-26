@@ -48,6 +48,8 @@ Do not copy the `service_role` key into the app. Anything with a `VITE_` prefix 
 
 The migration creates the application tables, security policies, pairing and playback functions, Realtime publication entries, the private `screen-media` bucket, and the four seeded screens with standby assignments. It is intended as the project’s initial migration; do not casually rerun it against a live database.
 
+For an existing project, apply each newer migration in order as well. In particular, [`supabase/migrations/202611260001_backfill_user_profiles.sql`](./supabase/migrations/202611260001_backfill_user_profiles.sql) creates viewer profiles for existing non-anonymous accounts that were created before the profile trigger was installed. This is safe to run more than once.
+
 ### 3. Enable Supabase authentication
 
 In the Supabase dashboard, go to **Authentication → Sign In / Providers** (the exact menu wording may vary) and enable:

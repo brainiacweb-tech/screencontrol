@@ -265,7 +265,7 @@ function ControlApp({ client, session }: { client: SupabaseClient; session: Sess
     setLoading(true)
     try {
       const [profileResult, screenResult, assetResult, assignmentResult, activityResult, programmeResult] = await Promise.all([
-        client.from('user_profiles').select('role,full_name').eq('id', session.user.id).single(),
+        client.from('user_profiles').select('role,full_name').eq('id', session.user.id).maybeSingle(),
         client.from('screens').select('id,label,auth_user_id,last_seen_at').order('label'),
         client.from('media_assets').select('id,file_name,storage_path,mime_type,size_bytes,created_at').order('created_at', { ascending: false }),
         client.from('screen_assignments').select('screen_id,content,updated_at'),
@@ -280,10 +280,15 @@ function ControlApp({ client, session }: { client: SupabaseClient; session: Sess
         { resource: 'activity', error: activityResult.error },
         { resource: 'programme', error: programmeResult.error },
       ].filter(({ error }) => error)
+      const missingProfileMessage = !profileResult.error && !profileResult.data
+        ? 'Your account profile is missing. Run supabase/migrations/202611260001_backfill_user_profiles.sql in the Supabase SQL Editor, then refresh.'
+        : null
       if (failures.length) {
         notify('error', failures.map(({ resource, error }) => `Couldn't load ${resource}: ${friendlyError(error)}`).join(' · '))
+      } else if (missingProfileMessage) {
+        notify('error', missingProfileMessage)
       }
-      setScreensLoadError(screenResult.error ? friendlyError(screenResult.error) : null)
+      setScreensLoadError(screenResult.error ? friendlyError(screenResult.error) : missingProfileMessage)
       if (profileResult.data) setProfile(profileResult.data as Profile)
       if (screenResult.data) {
         const loadedScreens = screenResult.data as Screen[]
