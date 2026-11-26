@@ -646,33 +646,19 @@ function SystemGuide({ open, onClose }: { open: boolean; onClose: () => void }) 
         <DialogHeader className="modal-heading">
           <div>
             <DialogTitle>ScreenControl system guide</DialogTitle>
-            <DialogDescription>Setup, connect your TVs, and run your event step by step.</DialogDescription>
+            <DialogDescription>Connect your TVs and manage event content step by step.</DialogDescription>
           </div>
           <DialogClose className="icon-button" aria-label="Close system guide"><X size={19} /></DialogClose>
         </DialogHeader>
         <div className="guide-content">
           <section>
             <h3>Before you begin</h3>
-            <p>ScreenControl has an operator dashboard, a display page for each TV, and a Supabase backend. The dashboard does not stream content itself: each TV needs internet access and its own display page open.</p>
-            <div className="guide-callout"><strong>You will need</strong><span>A Supabase project, the app’s project URL and publishable/anon key, an administrator or operator account, and TVs with a browser. Supported uploads are JPG, PNG, WebP, or MP4 files up to 100 MB each.</span></div>
+            <p>ScreenControl has an operator dashboard and a separate display page for each TV. The dashboard does not stream content itself: each TV needs internet access and its display page open.</p>
+            <div className="guide-callout"><strong>You will need</strong><span>An administrator or operator account, TVs with a browser, and your event media. Supported uploads are JPG, PNG, WebP, or MP4 files up to 100 MB each. If you cannot sign in or the screens are unavailable, ask your system administrator to check the app setup.</span></div>
           </section>
 
           <section>
-            <h3>1. Set up Supabase and the app</h3>
-            <ol>
-              <li>Create a Supabase project. In <strong>SQL Editor</strong>, run the complete <code>supabase/migrations/202611250001_screencontrol.sql</code> migration. It creates the tables and policies, private media bucket, pairing functions, and four initial TV records.</li>
-              <li>In <strong>Authentication → Sign In / Providers</strong>, enable email/password and anonymous sign-ins. Enable email sign-up if users should register themselves; new accounts start as viewers.</li>
-              <li>In <strong>Authentication → URL Configuration</strong>, set the app’s Site URL and allow the local development and deployed HTTPS URLs that users will visit.</li>
-              <li>Copy <code>.env.example</code> to <code>.env.local</code>. Set <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> to the project URL and browser-safe publishable/anon key. Restart the dev server after changing them.</li>
-              <li>Run <code>npm install</code>, then <code>npm run dev</code>. Open the Vite URL shown in the terminal.</li>
-              <li>Choose <strong>New here? Create an account</strong>, register the first admin, and confirm the email if requested. In Supabase <strong>Authentication → Users</strong>, copy that account’s UUID and promote it in SQL Editor:</li>
-            </ol>
-            <pre><code>{"update public.user_profiles\nset role = 'administrator'\nwhere id = 'AUTH_USER_UUID';"}</code></pre>
-            <p>Replace <code>AUTH_USER_UUID</code> with the real account UUID. To grant operator access, set the role to <code>operator</code>. Manage roles in Supabase; do not put a service-role key or database password in browser code or a <code>VITE_</code> variable.</p>
-          </section>
-
-          <section>
-            <h3>2. Sign in and understand the dashboard</h3>
+            <h3>1. Sign in and understand the dashboard</h3>
             <ul>
               <li><strong>Overview</strong> summarizes screen heartbeats, assignments, media, activity, and upcoming programme entries.</li>
               <li><strong>My screens</strong> is where you pair TVs, check online status, change content, pause/resume, or stop a display.</li>
@@ -683,7 +669,7 @@ function SystemGuide({ open, onClose }: { open: boolean; onClose: () => void }) 
           </section>
 
           <section>
-            <h3>3. Pair a TV</h3>
+            <h3>2. Pair a TV</h3>
             <ol>
               <li>On the operator dashboard, open <strong>My screens</strong> and choose the pairing menu on the TV’s card.</li>
               <li>Open the displayed <code>/display/&lt;screen-uuid&gt;</code> address in that TV’s built-in browser.</li>
@@ -694,7 +680,7 @@ function SystemGuide({ open, onClose }: { open: boolean; onClose: () => void }) 
           </section>
 
           <section>
-            <h3>4. Upload and play media</h3>
+            <h3>3. Upload and play media</h3>
             <ol>
               <li>Open <strong>Media library</strong> and choose <strong>Add picture or video</strong>.</li>
               <li>Select JPG, PNG, WebP, or MP4 files up to 100 MB each. Wait for them to appear in the library.</li>
@@ -703,11 +689,11 @@ function SystemGuide({ open, onClose }: { open: boolean; onClose: () => void }) 
               <li>Choose <strong>Play on ... screens</strong>. You can also drag a media card directly onto a screen card to send one item to that TV.</li>
             </ol>
             <p>To change an existing display, use <strong>Change content</strong> on its screen card. Use the pause/resume control to pause supported media or countdowns, and <strong>Stop display</strong> to return a TV to standby. Stopping a display does not delete its media.</p>
-            <p>Uploads stay in private storage and are delivered with temporary signed URLs. TV firmware determines which MP4 codecs can play. Muted autoplay is attempted; if blocked, interact with the TV and select <strong>Tap to play video</strong>.</p>
+            <p>Media is kept private and supplied to assigned screens. TV firmware determines which MP4 codecs can play. Muted autoplay is attempted; if blocked, interact with the TV and select <strong>Tap to play video</strong>.</p>
           </section>
 
           <section>
-            <h3>5. Show an announcement or countdown</h3>
+            <h3>4. Show an announcement or countdown</h3>
             <ul>
               <li><strong>Announcement:</strong> from Overview, select <strong>Show an announcement</strong>, enter a heading and message, choose target screens, then select <strong>Display announcement</strong>. Announcements replace the current assignment on those screens.</li>
               <li><strong>Countdown:</strong> from Overview, select <strong>Start a timer</strong>, enter a title and a duration between 1 minute and 4 hours, choose target screens, and select <strong>Start countdown</strong>. Pause or resume it from the screen card; stop it to return to standby.</li>
@@ -716,7 +702,7 @@ function SystemGuide({ open, onClose }: { open: boolean; onClose: () => void }) 
           </section>
 
           <section>
-            <h3>6. Build and show the programme</h3>
+            <h3>5. Build and show the programme</h3>
             <ol>
               <li>Open <strong>Programme</strong> and choose <strong>Add activity</strong>.</li>
               <li>Enter the activity, optional presenter, start time, and end time. The end time must be after the start.</li>
@@ -727,18 +713,16 @@ function SystemGuide({ open, onClose }: { open: boolean; onClose: () => void }) 
           </section>
 
           <section>
-            <h3>7. Check connections and fix common issues</h3>
+            <h3>6. Check connections and fix common issues</h3>
             <ul>
-              <li><strong>No screens listed:</strong> verify the migration ran in the same Supabase project configured in the app, then refresh.</li>
-              <li><strong>TV stays offline:</strong> check internet access, anonymous sign-ins, the display URL, and whether the TV page remains open. A paired TV is online only after a recent heartbeat.</li>
+              <li><strong>No screens listed:</strong> refresh the dashboard. If screens are still missing, ask your administrator to check the app setup.</li>
+              <li><strong>TV stays offline:</strong> check internet access, the display URL, and whether the TV page remains open. A paired TV is online only after a recent heartbeat.</li>
               <li><strong>Pairing fails:</strong> generate a fresh code and enter it before the 10-minute expiry.</li>
-              <li><strong>Upload fails:</strong> check that the file is a supported type and within the 100 MB limit, and that the migration created the private bucket.</li>
+              <li><strong>Upload fails:</strong> check that the file is a supported type and within the 100 MB limit. If it still fails, ask your administrator to check the media library configuration.</li>
               <li><strong>Video will not start:</strong> test the codec on the target TV and try its on-screen play prompt. MP4 files are not guaranteed to use TV-supported codecs.</li>
               <li><strong>Live updates stop:</strong> check the Live updates indicator and network, then refresh the dashboard or reload the TV page after reconnecting.</li>
             </ul>
           </section>
-
-          <a className="guide-full-link" href="https://github.com/brainiacweb-tech/screencontrol#screencontrol" target="_blank" rel="noreferrer">Open the full system guide on GitHub <ArrowRight size={14} /></a>
         </div>
       </DialogContent>
     </Dialog>
